@@ -42,14 +42,7 @@ case class Client(filepath: String) extends Service {
             executionService.submit(ClientMessager(blockNumber, fileBytesInFrames(blockNumber)))
             blockNumber = blockNumber.+(1)
         }
-//        while (true ) {
-//            if (window.size < Constants.MAX_FRAMES) {
-//                val thread = new Thread(ClientMessager(blockNumber, fileBytesInFrames(blockNumber)))
-//                blockNumber = blockNumber.+(1)
-//                thread.start()
-//                window.put(blockNumber, thread)
-//            }
-//        }
+
         while (true) {}
     }
 

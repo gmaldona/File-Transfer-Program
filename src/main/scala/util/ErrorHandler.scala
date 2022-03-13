@@ -9,11 +9,19 @@ import java.net.SocketAddress
 import java.nio.ByteBuffer
 import java.nio.file.{ Files, Paths }
 
+/**
+ * Handler for Error Packets
+ */
 object ErrorHandler {
 
+    /**
+     * Error Handler for initial FTPHeader RRQ/WRQ Request from Client
+     * @param receivedFTPHeader Received initial FTPHeader packet request
+     * @param remoteAddress Address from which the initial FTPHeader packet request came from
+     * @return Whether the FTPHeader packet was request
+     */
     def checkRequestErrors(receivedFTPHeader: FTPHeader, remoteAddress: SocketAddress): Boolean = {
 
-        var buffer: ByteBuffer = ByteBuffer.allocate(0)
         var errorAck: Packet = null
         var hasError: Boolean = false
 
@@ -28,15 +36,20 @@ object ErrorHandler {
         }
 
         if (hasError) {
-            buffer = ByteBuffer.wrap(errorAck.getBytes)
+            val buffer: ByteBuffer = ByteBuffer.wrap(errorAck.getBytes)
             server.send(buffer, remoteAddress)
             server.close()
         }
         hasError
     }
 
+    /**
+     * Error handler for deconstructing a received Error Packet
+     * @param errorPacket Error Packet that will be deconstructed
+     * @throws Exception Exception Error
+     */
     @throws[Exception]
-    def handle(errorPacket: Error): Error = {
+    def handle(errorPacket: Error): Unit = {
         println("Error Code:\t\t" + errorPacket.errorCode)
         println("Error Message:\t" + errorPacket.errorMessage)
         println("Closing Connection.")

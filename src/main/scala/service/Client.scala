@@ -46,6 +46,7 @@ case class Client(filepath: String) extends Service {
             }
             else {
                 if (blockNumber == fileBytesInFrames.length) {
+                    println(blockNumber + ":" + fileBytesInFrames.length)
                     isDone = true
                 }
                 else if (ackMap.get(windowStartIndex + 1).blockNumber != -1 && blockNumber < fileBytesInFrames.length) {
@@ -58,7 +59,10 @@ case class Client(filepath: String) extends Service {
             }
         }
 
-        while (ackMap.values().stream().filter( ack => ack.blockNumber == -1).count() > 0) {}
+        while (ackMap.values().stream().filter( ack => ack.blockNumber == -1).count() > 0) {
+            if (ackMap.containsKey(-1)) System.exit(0)
+        }
+        System.exit(0)
 
     }
 
@@ -95,11 +99,10 @@ case class Client(filepath: String) extends Service {
                     val ack: ACK = getAckPacketOrError(receivedPacket)
                     println(blockNumber + " : " + ack)
                     if (ack.blockNumber > 0) {
-                        ackMap.put(ack.blockNumber, ack)
+                        if (! Constants.DEBUG_SHOW_DL_SLIDING_WINDOW_WORKS)  ackMap.put(ack.blockNumber, ack)
                     }
                     if (ackMap.get(blockNumber).blockNumber != -1) {
                         hasReceivedACK = true
-                        if (! Constants.DEBUG_SHOW_DL_SLIDING_WINDOW_WORKS) ackMap.put(blockNumber, ack)
                     }
                 } catch {
                     case _: Exception =>

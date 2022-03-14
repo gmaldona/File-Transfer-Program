@@ -1,8 +1,6 @@
 package edu.oswego.cs.gmaldona
 package util
 
-import java.time.Duration
-
 object Constants {
 
     type Frame = Array[Byte]

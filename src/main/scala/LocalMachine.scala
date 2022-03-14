@@ -9,8 +9,10 @@ import edu.oswego.cs.gmaldona.util.{ Constants, FTPUtil }
 import java.net.InetSocketAddress
 import java.nio.ByteBuffer
 import java.nio.channels.DatagramChannel
+import scala.concurrent.ExecutionContext.Implicits.global
+import scala.concurrent.duration.DurationLong
+import scala.concurrent.{ Await, ExecutionContext, Future }
 import scala.util.Random
-
 import sys.process._
 import scala.language.postfixOps
 
@@ -27,6 +29,11 @@ object LocalMachine {
     val address = new InetSocketAddress(host, Constants.PORT)
 
     val client: DatagramChannel = DatagramChannel.open().bind(null)
+    val ec = ExecutionContext.global
+
+    def runWithTimeout(timeoutMs: Long)(f: => Unit) : Option[Unit] = {
+        Some(Await.result(Future(f), timeoutMs milliseconds))
+    }
 
     def main(args: Array[String]): Unit = {
         println(args.mkString("Array(", ", ", ")"))
@@ -47,11 +54,25 @@ object LocalMachine {
         if (_args.length == 2) service = Some(serviceFactory(_args.slice(1, 3)))
         if (_args.length > 2) parseOptions()
 
-        if (_args(_args.length - 1).contains(".edu")) sendFTPHeaderPacket(Opcode.RRQ, filePath, localKey)
-        else sendFTPHeaderPacket(Opcode.WRQ, filePath, localKey)
+        var receivedFTPAck = false
+        var buffer: Array[Byte] = Array()
+        while (! receivedFTPAck) {
+            if (_args(_args.length - 1).contains(".edu")) sendFTPHeaderPacket(Opcode.RRQ, filePath, localKey)
+            else sendFTPHeaderPacket(Opcode.WRQ, filePath, localKey)
+            try {
+                runWithTimeout(1000) {
+                    buffer = awaitFTPHeaderACKPacket()
+                }
+                receivedFTPAck = true
+            } catch {
+                case e: Exception =>
+            }
+        }
+
+
 
 //        sendFTPHeaderPacket(Opcode.RRQ, filePath, localKey)
-        val buffer: Array[Byte] = awaitFTPHeaderACKPacket()
+        // val buffer: Array[Byte] = awaitFTPHeaderACKPacket()
 
         val FTPHeaderACK = PacketFactory.get(buffer)
         println(FTPHeaderACK)

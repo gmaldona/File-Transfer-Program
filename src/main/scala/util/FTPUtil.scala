@@ -49,4 +49,26 @@ object FTPUtil {
         System.exit(1)
     }
 
+    def XORData(_buffer: Array[Byte], key: Array[Byte]): Array[Byte] = {
+        var XORArray: Array[Byte] = Array()
+        var buffer = _buffer
+
+        while (buffer.length > 0) {
+            var slicedBuffer: Array[Byte] = Array()
+            if (buffer.length >= 8) {
+                slicedBuffer = buffer.slice(0, 8)
+                buffer = buffer.slice(8, buffer.length)
+            } else{
+                slicedBuffer = buffer.slice(0, buffer.length)
+                buffer = Array()
+            }
+            var XORSlice: Array[Byte] = Array()
+            for (i <- 0 to 8) {
+                if (i < slicedBuffer.length) XORSlice = XORSlice.:+( (slicedBuffer(i) ^ key(i)).toByte)
+            }
+            XORArray = XORArray.:++(XORSlice)
+        }
+        XORArray
+    }
+
 }

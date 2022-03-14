@@ -17,7 +17,7 @@ import scala.concurrent.duration.DurationLong
 import scala.concurrent.{ Await, ExecutionContext, Future }
 import scala.language.postfixOps
 
-case class Client(filepath: String, address: SocketAddress) extends Service {
+case class Client(filepath: String, address: SocketAddress, localRemoteKey: Array[Byte]) extends Service {
 
     val executionService: ExecutorService = Executors.newFixedThreadPool(Constants.WINDOW_SIZE)
     var window: ConcurrentHashMap[Integer, Thread] = new ConcurrentHashMap[Integer, Thread]();
@@ -50,7 +50,7 @@ case class Client(filepath: String, address: SocketAddress) extends Service {
                  if (ackMap.get(windowStartIndex + 1).blockNumber != -1 && blockNumber <= fileBytesInFrames.length) {
                     windowStartIndex = windowStartIndex.+(1)
                     println(s"${blockNumber} -> SIZE: " + fileBytesInFrames(blockNumber-1).length)
-                    executionService.submit(ClientMessager(blockNumber, fileBytesInFrames(blockNumber - 1)))
+                     executionService.submit(ClientMessager(blockNumber, fileBytesInFrames(blockNumber - 1)))
                     windowEndIndex = blockNumber
                     ackMap.put(blockNumber, ACK(-1))
                     blockNumber = blockNumber.+(1)
@@ -91,7 +91,7 @@ case class Client(filepath: String, address: SocketAddress) extends Service {
     case class ClientMessager(blockNumber: Int, frame: Frame) extends Runnable {
 
         override def run(): Unit = {
-            val dataPacket = Data(blockNumber, frame)
+            val dataPacket = Data(blockNumber, FTPUtil.XORData(frame, localRemoteKey))
             var hasReceivedACK = false
             while (! hasReceivedACK) {
                 sendPacket(dataPacket, address)

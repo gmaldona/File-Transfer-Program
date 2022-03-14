@@ -55,11 +55,12 @@ object LocalMachine {
         }
 
         localRemoteKey = FTPUtil.localRemoteXORKey(localKey, remoteKey)
+        println("Client Key: " + BigInt(localRemoteKey))
         client.close()
         service match {
             case Some(s) => s match {
-                case _: Client => Client(filePath, address).start();
-                case _: Server => Server(filePath).start()
+                case _: Client => Client(filePath, address, BigInt(localRemoteKey).toByteArray).start();
+                case _: Server => Server(filePath, BigInt(localRemoteKey).toByteArray).start()
             }
             case None => println("Service Error. Try Again.")
         }
@@ -93,7 +94,7 @@ object LocalMachine {
      *  @param args Arguments to for the service
      *  @return Service
      */
-    def serviceFactory(args: Array[String]): Service = if (args(0).contains(":")) Server(filePath) else Client(filePath, address)
+    def serviceFactory(args: Array[String]): Service = if (args(0).contains(":")) Server(filePath, BigInt(localRemoteKey).toByteArray) else Client(filePath, address, BigInt(localRemoteKey).toByteArray)
     def parseOptions(): Unit = {}
     def parseFTPHeaderACK(packet: Data): Unit = remoteKey = BigInt(packet.data).intValue
 }

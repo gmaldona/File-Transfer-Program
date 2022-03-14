@@ -18,6 +18,7 @@ object RemoteMachine {
     var server: DatagramChannel = null
     val remoteKey: Int = math.abs(Random.nextInt())
     var localKey: Int = 0
+    var localRemoteKey: Long = 0.toLong
 
     def main(args: Array[String]): Unit = {
         var hasError = false
@@ -36,12 +37,16 @@ object RemoteMachine {
 
             if (ErrorHandler.checkRequestErrors(receivedFTPHeader, remoteAddress)) hasError = true
             localKey = BigInt(receivedFTPHeader.encryptionKey).intValue
+            localRemoteKey = FTPUtil.localRemoteXORKey(localKey, remoteKey)
 
-            val service: Service = if (receivedFTPHeader.opcode == Opcode.WRQ) Server(receivedFTPHeader.filepath) else Client(receivedFTPHeader.filepath, remoteAddress)
+            val service: Service = if (receivedFTPHeader.opcode == Opcode.WRQ) Server(receivedFTPHeader.filepath, BigInt(localRemoteKey).toByteArray) else Client(receivedFTPHeader.filepath, remoteAddress, BigInt(localRemoteKey).toByteArray)
 
             val FTPHeaderAck = Data(0, BigInt(remoteKey).toByteArray)
             buffer = ByteBuffer.wrap(FTPHeaderAck.getBytes)
             server.send(buffer, remoteAddress)
+
+
+            println("Server Key: " + localRemoteKey)
 
             server.disconnect()
             server.close()

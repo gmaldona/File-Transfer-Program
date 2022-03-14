@@ -12,7 +12,7 @@ object Constants {
     val TIMEOUT = 1
 
     val DEBUG_SHOW_DL_SLIDING_WINDOW_WORKS = false
-
+    val DEBUG_SHOW_DL_XOR_WORKS = false
 
 
 }

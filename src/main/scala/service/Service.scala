@@ -10,9 +10,6 @@ import java.nio.ByteBuffer
 import java.nio.channels.DatagramChannel
 
 abstract class Service {
-    var remoteAddress: String
-    var port: Int
-    var pathLocation: String
 
     def isLastDataPacket(packet: Data): Boolean = if (packet.data.length < Constants.MAX_PACKET_SIZE) true else false
 

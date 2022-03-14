@@ -26,10 +26,6 @@ case class Client(filepath: String) extends Service {
     val fileBytesInFrames: List[Frame] = List().++( FTPUtil.ByteArrayToMaxPacketSizeArray(fileBytes))
     val datagramChannel: DatagramChannel = DatagramChannel.open().bind(null)
 
-    override var remoteAddress: String = _
-    override var port: Int = _
-    override var pathLocation: String = _
-
     implicit val ec = ExecutionContext.global
 
     def start(): Unit = {
@@ -73,12 +69,11 @@ case class Client(filepath: String) extends Service {
             val dataPacket = Data(blockNumber, frame)
             var hasReceivedACK = false
             while (! hasReceivedACK) {
-                println("Sending Data Packet: " + dataPacket.getBytes.mkString("Array(", ", ", ")"))
                 sendPacket(dataPacket, address)
                 try {
                     val receivedPacket: Packet = runWithTimeout(2000 + (dataPacket.blockNumber) * 10) {parseBufferIntoPacket(receivePacket(datagramChannel)._1)}.get
                     val ack: ACK = getAckPacketOrError(receivedPacket)
-                    println(ack )
+                    println(blockNumber + " : " + ack)
                     if (ack.blockNumber == blockNumber) hasReceivedACK = true
                 } catch {
                     case _: Exception =>

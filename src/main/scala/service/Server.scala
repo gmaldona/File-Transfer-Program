@@ -2,13 +2,15 @@ package edu.oswego.cs.gmaldona
 package service
 import packets.{ ACK, Data, Error, Packet, PacketFactory }
 
+import edu.oswego.cs.gmaldona.opcodes.Opcode
 import edu.oswego.cs.gmaldona.util.Constants.Frame
 import edu.oswego.cs.gmaldona.util.{ Constants, ErrorHandler, FTPUtil }
 
 import java.net.{ InetSocketAddress, SocketAddress }
 import java.nio.ByteBuffer
 import java.nio.channels.DatagramChannel
-import java.util.concurrent.{ ExecutorService, Executors, ConcurrentHashMap }
+import java.util.concurrent.atomic.{ AtomicBoolean, AtomicInteger }
+import java.util.concurrent.{ ConcurrentHashMap, ExecutorService, Executors }
 import scala.concurrent.duration.DurationLong
 import scala.concurrent.{ Await, ExecutionContext, Future }
 import scala.language.postfixOps
@@ -20,8 +22,10 @@ case class Server() extends Service {
     var datagramChannel: DatagramChannel = null
     var hasReceivedLastPacket = false
     var hasReceivedAllPacket = false
-    @volatile var lastBlockNumber = 0
     @volatile var openedThreads = 0
+    val lastPacket: AtomicBoolean = new AtomicBoolean(false)
+    val allPacket: AtomicBoolean = new AtomicBoolean(false)
+    val lastBlockNumber: AtomicInteger = new AtomicInteger(0)
 
     implicit val ec = ExecutionContext.global
 
@@ -31,43 +35,52 @@ case class Server() extends Service {
         datagramChannel = DatagramChannel.open().bind(address)
         // not thread safe
         val dataPacketMap: ConcurrentHashMap[Int, Data] = new ConcurrentHashMap[Int, Data]()
+        var isLastPacket = false
+        var receivedAllPackets = false
 
-        while (!hasReceivedAllPacket || ! hasReceivedAllPacket) {
-            if (openedThreads < Constants.MAX_FRAMES) {
-                new Thread(() => {
-                    println("open thread")
-                    val _byteBuffer = ByteBuffer.allocate(Constants.MAX_PACKET_SIZE)
-                    val _address: SocketAddress = datagramChannel.receive(_byteBuffer)
-                    println("Packet RECEIVED")
-                    val byteBuffer = _byteBuffer
-                    val address = _address
-                    val buffer: Frame = parseByteBuffer(byteBuffer)
-                    val dataPacket: Data = getDataPacketOrError( parseBufferIntoPacket(buffer) )
-                    dataPacketMap.put(dataPacket.blockNumber, dataPacket)
-                    if (dataPacket.getBytes.length == 512) sendACKPacket(dataPacket.blockNumber, address)
-                    else { hasReceivedLastPacket = true; lastBlockNumber = dataPacket.blockNumber }
-                } ).start()
-                openedThreads = openedThreads.+(1)
+        while (! lastPacket.get() && !allPacket.get()) {
+            try {
+                runWithTimeout(1000) {
+                    val byteBuffer = ByteBuffer.allocate(Constants.MAX_PACKET_SIZE)
+                    val address: SocketAddress = datagramChannel.receive(byteBuffer)
+                    val dataPacketHandler = ReceivedDataPacket(byteBuffer, address, dataPacketMap, lastPacket, lastBlockNumber)
+                    new Thread(dataPacketHandler).start()
+                }
+            } catch {
+                case _: Exception =>
             }
-            if (dataPacketMap.size() == lastBlockNumber) hasReceivedAllPacket = true
+            if (lastPacket.get() && dataPacketMap.size() == lastBlockNumber.get()) { allPacket.set(true) }
         }
 
+        println ("FINISH:")
         dataPacketMap.forEach( (key, value) => println(key + ": " + value.getBytes.mkString("Array(", ", ", ")")) )
-
-
 
     }
 
-    def runWithTimeout(timeoutMs: Long)(f: => Data) : Option[Data] = {
+    def runWithTimeout(timeoutMs: Long)(f: => Unit) : Option[Unit] = {
         Some(Await.result(Future(f), timeoutMs milliseconds))
     }
 
-    def parseByteBuffer(byteBuffer: ByteBuffer): Frame = {
-        byteBuffer.flip()
-        byteBuffer.array()
-    }
+    def getLastBlockNumber(buffer: Array[Byte]): Int = BigInt(buffer.slice(2, 4)).intValue
 
-    def parseBufferIntoPacket(buffer: Array[Byte]): Packet = PacketFactory.get(buffer)
+}
+
+case class ReceivedDataPacket(_byteBuffer: ByteBuffer, _address: SocketAddress, _dataPacketMap: ConcurrentHashMap[Int, Data], _lastPacket: AtomicBoolean, _lastBlockNumber: AtomicInteger) extends Runnable {
+    val byteBuffer = _byteBuffer.flip()
+    val address = _address
+    val datagramChannel: DatagramChannel = DatagramChannel.open().bind(null)
+    val buffer: Array[Byte] = byteBuffer.array().asInstanceOf[Array[Byte]]
+
+    override def run(): Unit = {
+        val dataPacket: Data = getDataPacketOrError( parseBufferIntoPacket(buffer) )
+        println(dataPacket.blockNumber + " : " + dataPacket.getBytes.length)
+        sendACKPacket(dataPacket.blockNumber, address)
+        _dataPacketMap.put(dataPacket.blockNumber, dataPacket)
+        if (dataPacket.getBytes.length < Constants.MAX_PACKET_SIZE) {
+            _lastPacket.set(true)
+            _lastBlockNumber.set(dataPacket.blockNumber)
+        }
+    }
 
     def sendACKPacket(blockNumber: Int, address: SocketAddress): Unit = {
         val ack = ACK(blockNumber)
@@ -88,9 +101,7 @@ case class Server() extends Service {
         Data(-1, Array())
     }
 
+    def parseBufferIntoPacket(buffer: Array[Byte]): Packet = PacketFactory.get(buffer)
 
-    override var remoteAddress: String = _
-    override var port: Int = _
-    override var pathLocation: String = _
-
+    def isNotMaxSizePacket: Boolean = if (buffer.length < Constants.MAX_PACKET_SIZE) true else false
 }

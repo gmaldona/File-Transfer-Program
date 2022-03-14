@@ -10,8 +10,10 @@ object Constants {
     val HOST = "localhost"
     val PORT = 26923
     //val PORT = 8090
-    val MAX_FRAMES: Int = 5;
+    val WINDOW_SIZE: Int = 5;
     val TIMEOUT = 1
+
+    val DEBUG_SHOW_DL_SLIDING_WINDOW_WORKS = false
 
 
 

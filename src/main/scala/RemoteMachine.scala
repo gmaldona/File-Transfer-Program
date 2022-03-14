@@ -1,5 +1,6 @@
 package edu.oswego.cs.gmaldona
 
+import edu.oswego.cs.gmaldona.opcodes.Opcode.{ ACK, ERR }
 import edu.oswego.cs.gmaldona.opcodes.{ ErrorCode, Opcode }
 import edu.oswego.cs.gmaldona.packets.{ Data, Error, FTPHeader, Packet, PacketFactory }
 import edu.oswego.cs.gmaldona.service.{ Client, Server, Service }
@@ -20,45 +21,42 @@ object RemoteMachine {
 
     def main(args: Array[String]): Unit = {
         var hasError = false
-        while (! hasError) {
-            try {
-                server = DatagramChannel.open().bind(new InetSocketAddress("localhost", Constants.PORT))
+        try {
 
+            server = DatagramChannel.open().bind(new InetSocketAddress("localhost", Constants.PORT))
+            println("Listening for TFP Requests ...")
 
-                println("Listening for TFP Requests ...")
+            var buffer: ByteBuffer = ByteBuffer.allocate(Constants.MAX_PACKET_SIZE)
+            val remoteAddress: SocketAddress = server.receive(buffer)
+            val receivedPacket: Packet = PacketFactory.get(FTPUtil.extractPacket(buffer))
 
-                var buffer: ByteBuffer = ByteBuffer.allocate(Constants.MAX_PACKET_SIZE)
-                val remoteAddress: SocketAddress = server.receive(buffer)
-                val receivedFTPHeader: FTPHeader = PacketFactory.get(FTPUtil.extractPacket(buffer)).asInstanceOf[FTPHeader]
+            val receivedFTPHeader: FTPHeader = receivedPacket.asInstanceOf[FTPHeader]
 
-                println(receivedFTPHeader)
+            println(receivedFTPHeader)
 
-                if (ErrorHandler.checkRequestErrors(receivedFTPHeader, remoteAddress)) hasError = true
+            if (ErrorHandler.checkRequestErrors(receivedFTPHeader, remoteAddress)) hasError = true
+            localKey = BigInt(receivedFTPHeader.encryptionKey).intValue
 
-                localKey = BigInt(receivedFTPHeader.encryptionKey).intValue
+            val service: Service = if (receivedFTPHeader.opcode == Opcode.WRQ) Server() else Client(receivedFTPHeader.filepath)
 
-                val service: Service = if (receivedFTPHeader.opcode == Opcode.WRQ) Server() else Client(receivedFTPHeader.filepath)
+            val FTPHeaderAck = Data(0, BigInt(remoteKey).toByteArray)
+            buffer = ByteBuffer.wrap(FTPHeaderAck.getBytes)
+            server.send(buffer, remoteAddress)
 
-                val FTPHeaderAck = Data(0, BigInt(remoteKey).toByteArray)
-                buffer = ByteBuffer.wrap(FTPHeaderAck.getBytes)
-                server.send(buffer, remoteAddress)
+            server.disconnect()
+            server.close()
 
-
-                server.disconnect()
-                server.close()
-
-                service match {
-                    case s: Server => s.start()
-                    case c: Client => c.start()
-                }
-
-            } finally  {
-                if (server != null) server.close()
+            service match {
+                case s: Server => s.start()
+                case c: Client => c.start()
             }
-        }
+        } finally  {
+                if (server != null) {
+//                    server.disconnect()
+//                    server.close()
+                }
+            }
     }
-
-
 
 
 }

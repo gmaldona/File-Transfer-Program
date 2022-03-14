@@ -2,9 +2,7 @@ package edu.oswego.cs.gmaldona
 package service
 import packets.{ ACK, Data, Error, Packet, PacketFactory }
 
-import edu.oswego.cs.gmaldona.opcodes.Opcode
-import edu.oswego.cs.gmaldona.util.Constants.Frame
-import edu.oswego.cs.gmaldona.util.{ Constants, ErrorHandler, FTPUtil }
+import edu.oswego.cs.gmaldona.util.{ Constants, ErrorHandler }
 
 import java.net.{ InetSocketAddress, SocketAddress }
 import java.nio.ByteBuffer
@@ -17,15 +15,15 @@ import scala.language.postfixOps
 
 case class Server() extends Service {
 
-    val executionService: ExecutorService = Executors.newFixedThreadPool(Constants.MAX_FRAMES)
+    val executionService: ExecutorService = Executors.newFixedThreadPool(Constants.WINDOW_SIZE)
     val address: SocketAddress = new InetSocketAddress(Constants.HOST, Constants.PORT)
     var datagramChannel: DatagramChannel = null
     var hasReceivedLastPacket = false
     var hasReceivedAllPacket = false
     @volatile var openedThreads = 0
-    val lastPacket: AtomicBoolean = new AtomicBoolean(false)
-    val allPacket: AtomicBoolean = new AtomicBoolean(false)
-    val lastBlockNumber: AtomicInteger = new AtomicInteger(0)
+    @volatile var lastPacket: AtomicBoolean = new AtomicBoolean(false)
+    @volatile var allPacket: AtomicBoolean = new AtomicBoolean(false)
+    @volatile var lastBlockNumber: AtomicInteger = new AtomicInteger(0)
 
     implicit val ec = ExecutionContext.global
 
@@ -33,10 +31,7 @@ case class Server() extends Service {
 
         println("Starting Server. Listening for File Data...")
         datagramChannel = DatagramChannel.open().bind(address)
-        // not thread safe
         val dataPacketMap: ConcurrentHashMap[Int, Data] = new ConcurrentHashMap[Int, Data]()
-        var isLastPacket = false
-        var receivedAllPackets = false
 
         while (! lastPacket.get() && !allPacket.get()) {
             try {
@@ -49,7 +44,12 @@ case class Server() extends Service {
             } catch {
                 case _: Exception =>
             }
-            if (lastPacket.get() && dataPacketMap.size() == lastBlockNumber.get()) { allPacket.set(true) }
+            if (lastBlockNumber.get() != 0) { println("DEBUG:" + lastBlockNumber.get()) }
+            if (lastPacket.get() && dataPacketMap.size() == lastBlockNumber.get()) {
+                allPacket.set(true)
+                datagramChannel.disconnect()
+                datagramChannel.close()
+            }
         }
 
         println ("FINISH:")

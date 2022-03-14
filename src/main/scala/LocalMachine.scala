@@ -16,15 +16,24 @@ object LocalMachine {
     var service: Option[Service] = None
     var localKey: Int = math.abs(Random.nextInt())
     var filePath: String = ""
+    var host: String = ""
     var remoteKey: Int = 0
     var localRemoteKey: Long = 0
+    val address = new InetSocketAddress(host, Constants.PORT)
 
     val client: DatagramChannel = DatagramChannel.open().bind(null)
 
     def main(args: Array[String]): Unit = {
         var _args: Array[String] = args
-
-        if (_args(_args.length - 1).contains(".edu")) filePath = _args(_args.length - 2) else filePath = _args(_args.length - 1)
+        if (_args.length >= 2) {
+            if (_args(_args.length - 1).contains(".edu")) {
+                filePath = _args(_args.length - 2)
+                host = _args(_args.length - 1)
+            } else {
+                filePath = _args(_args.length - 1)
+                host = _args(_args.length - 2)
+            }
+        }
 
         if (_args.length == 0) _args = Array("File-Transfer-Program", "4.4:4", "testData/test.txt")
         if (_args.length < 2) argumentError()
@@ -49,7 +58,7 @@ object LocalMachine {
         client.close()
         service match {
             case Some(s) => s match {
-                case _: Client => Client(filePath).start();
+                case _: Client => Client(filePath, address).start();
                 case _: Server => Server(filePath).start()
             }
             case None => println("Service Error. Try Again.")
@@ -62,7 +71,7 @@ object LocalMachine {
         println(ftpHeader.getBytes.mkString("Array(", ", ", ")"))
         val byteBuffer: ByteBuffer = ByteBuffer.wrap(ftpHeader.getBytes)
 
-        client.send(byteBuffer, new InetSocketAddress(Constants.HOST, Constants.PORT))
+        client.send(byteBuffer, address)
     }
 
     def awaitFTPHeaderACKPacket(): Array[Byte] = {
@@ -84,7 +93,7 @@ object LocalMachine {
      *  @param args Arguments to for the service
      *  @return Service
      */
-    def serviceFactory(args: Array[String]): Service = if (args(0).contains(":")) Server(filePath) else Client(filePath)
+    def serviceFactory(args: Array[String]): Service = if (args(0).contains(":")) Server(filePath) else Client(filePath, address)
     def parseOptions(): Unit = {}
     def parseFTPHeaderACK(packet: Data): Unit = remoteKey = BigInt(packet.data).intValue
 }

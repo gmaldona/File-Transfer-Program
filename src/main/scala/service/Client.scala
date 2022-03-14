@@ -17,7 +17,7 @@ import scala.concurrent.duration.DurationLong
 import scala.concurrent.{ Await, ExecutionContext, Future }
 import scala.language.postfixOps
 
-case class Client(filepath: String) extends Service {
+case class Client(filepath: String, address: SocketAddress) extends Service {
 
     val executionService: ExecutorService = Executors.newFixedThreadPool(Constants.WINDOW_SIZE)
     var window: ConcurrentHashMap[Integer, Thread] = new ConcurrentHashMap[Integer, Thread]();
@@ -87,8 +87,6 @@ case class Client(filepath: String) extends Service {
     }
 
     case class ClientMessager(blockNumber: Int, frame: Frame) extends Runnable {
-
-        val address: SocketAddress = new InetSocketAddress(Constants.HOST, Constants.PORT)
 
         override def run(): Unit = {
             val dataPacket = Data(blockNumber, frame)

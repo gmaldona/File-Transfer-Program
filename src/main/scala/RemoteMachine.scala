@@ -23,7 +23,7 @@ object RemoteMachine {
         var hasError = false
         try {
 
-            server = DatagramChannel.open().bind(new InetSocketAddress("localhost", Constants.PORT))
+            server = DatagramChannel.open().bind(new InetSocketAddress(Constants.HOST, Constants.PORT))
             println("Listening for TFP Requests ...")
 
             var buffer: ByteBuffer = ByteBuffer.allocate(Constants.MAX_PACKET_SIZE)
@@ -37,7 +37,7 @@ object RemoteMachine {
             if (ErrorHandler.checkRequestErrors(receivedFTPHeader, remoteAddress)) hasError = true
             localKey = BigInt(receivedFTPHeader.encryptionKey).intValue
 
-            val service: Service = if (receivedFTPHeader.opcode == Opcode.WRQ) Server(receivedFTPHeader.filepath) else Client(receivedFTPHeader.filepath)
+            val service: Service = if (receivedFTPHeader.opcode == Opcode.WRQ) Server(receivedFTPHeader.filepath) else Client(receivedFTPHeader.filepath, remoteAddress)
 
             val FTPHeaderAck = Data(0, BigInt(remoteKey).toByteArray)
             buffer = ByteBuffer.wrap(FTPHeaderAck.getBytes)

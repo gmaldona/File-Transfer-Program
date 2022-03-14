@@ -12,8 +12,11 @@ import java.nio.file.{ Files, Paths }
 import java.nio.channels.DatagramChannel
 import scala.util.Random
 import scala.util.control.Breaks._
+import sys.process._
+import scala.language.postfixOps
 
 object RemoteMachine {
+    "clear" !
 
     var server: DatagramChannel = null
     val remoteKey: Int = math.abs(Random.nextInt())

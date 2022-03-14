@@ -11,6 +11,7 @@ object Constants {
     val WINDOW_SIZE: Int = 5;
     val TIMEOUT = 1
 
+    //Client side controlled
     val DEBUG_SHOW_DL_SLIDING_WINDOW_WORKS = false
     val DEBUG_SHOW_DL_XOR_WORKS = false
 

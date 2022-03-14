@@ -11,7 +11,12 @@ import java.nio.ByteBuffer
 import java.nio.channels.DatagramChannel
 import scala.util.Random
 
+import sys.process._
+import scala.language.postfixOps
+
 object LocalMachine {
+
+    "clear" !
 
     var service: Option[Service] = None
     var localKey: Int = math.abs(Random.nextInt())
@@ -24,6 +29,8 @@ object LocalMachine {
     val client: DatagramChannel = DatagramChannel.open().bind(null)
 
     def main(args: Array[String]): Unit = {
+        println(args.mkString("Array(", ", ", ")"))
+
         var _args: Array[String] = args
         if (_args.length >= 2) {
             if (_args(_args.length - 1).contains(".edu")) {

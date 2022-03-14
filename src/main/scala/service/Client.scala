@@ -2,7 +2,6 @@ package edu.oswego.cs.gmaldona
 package service
 import packets.{ ACK, Data, Error, Packet, PacketFactory }
 
-import com.sun.xml.internal.ws.policy.privateutil.PolicyUtils.Collections
 import edu.oswego.cs.gmaldona.opcodes.Opcode
 import edu.oswego.cs.gmaldona.util.{ Constants, ErrorHandler, FTPUtil }
 import edu.oswego.cs.gmaldona.util.Constants.Frame

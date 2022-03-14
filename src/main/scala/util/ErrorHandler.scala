@@ -5,6 +5,7 @@ import RemoteMachine.server
 import opcodes.{ ErrorCode, Opcode }
 import packets.{ Error, FTPHeader, Packet }
 
+import java.io.File
 import java.net.SocketAddress
 import java.nio.ByteBuffer
 import java.nio.file.{ Files, Paths }
@@ -30,9 +31,15 @@ object ErrorHandler {
             hasError = true
         }
 
-        else if (receivedFTPHeader.opcode == Opcode.WRQ && Files.exists(Paths.get("ReceivedFile/" + receivedFTPHeader.filepath))) {
-            errorAck = Error(ErrorCode.FILE_EX, "File already exists.")
-            hasError = true
+        else if (receivedFTPHeader.opcode == Opcode.WRQ) {
+            val d = new File("ReceivedFile/")
+            if (d.exists() && d.isDirectory) {
+                if (d.listFiles(_.isFile).toList.nonEmpty) {
+                    errorAck = Error(ErrorCode.FILE_EX, "File already exists.")
+                    hasError = true
+                }
+            }
+
         }
 
         if (hasError) {

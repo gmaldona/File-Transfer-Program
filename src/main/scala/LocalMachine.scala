@@ -24,14 +24,17 @@ object LocalMachine {
     def main(args: Array[String]): Unit = {
         var _args: Array[String] = args
 
+        if (_args(_args.length - 1).contains(".edu")) filePath = _args(_args.length - 2) else filePath = _args(_args.length - 1)
+
         if (_args.length == 0) _args = Array("File-Transfer-Program", "4.4:4", "testData/test.txt")
-        if (_args.length < 3) argumentError()
-        if (_args.length >= 3) service = Some(serviceFactory(_args.slice(1, 3)))
-        if (_args.length > 3) parseOptions()
+        if (_args.length < 2) argumentError()
+        if (_args.length == 2) service = Some(serviceFactory(_args.slice(1, 3)))
+        if (_args.length > 2) parseOptions()
 
-        filePath = _args(2)
+        if (_args(_args.length - 1).contains(".edu")) sendFTPHeaderPacket(Opcode.RRQ, filePath, localKey)
+        else sendFTPHeaderPacket(Opcode.WRQ, filePath, localKey)
 
-        sendFTPHeaderPacket(Opcode.RRQ, filePath, localKey)
+//        sendFTPHeaderPacket(Opcode.RRQ, filePath, localKey)
         val buffer: Array[Byte] = awaitFTPHeaderACKPacket()
 
         val FTPHeaderACK = PacketFactory.get(buffer)
@@ -47,7 +50,7 @@ object LocalMachine {
         service match {
             case Some(s) => s match {
                 case _: Client => Client(filePath).start();
-                case _: Server => Server().start()
+                case _: Server => Server(filePath).start()
             }
             case None => println("Service Error. Try Again.")
         }
@@ -81,7 +84,7 @@ object LocalMachine {
      *  @param args Arguments to for the service
      *  @return Service
      */
-    def serviceFactory(args: Array[String]): Service = if (args(0).contains(":")) Server() else Client(filePath)
+    def serviceFactory(args: Array[String]): Service = if (args(0).contains(":")) Server(filePath) else Client(filePath)
     def parseOptions(): Unit = {}
     def parseFTPHeaderACK(packet: Data): Unit = remoteKey = BigInt(packet.data).intValue
 }

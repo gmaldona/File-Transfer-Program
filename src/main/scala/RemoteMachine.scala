@@ -37,7 +37,7 @@ object RemoteMachine {
             if (ErrorHandler.checkRequestErrors(receivedFTPHeader, remoteAddress)) hasError = true
             localKey = BigInt(receivedFTPHeader.encryptionKey).intValue
 
-            val service: Service = if (receivedFTPHeader.opcode == Opcode.WRQ) Server() else Client(receivedFTPHeader.filepath)
+            val service: Service = if (receivedFTPHeader.opcode == Opcode.WRQ) Server(receivedFTPHeader.filepath) else Client(receivedFTPHeader.filepath)
 
             val FTPHeaderAck = Data(0, BigInt(remoteKey).toByteArray)
             buffer = ByteBuffer.wrap(FTPHeaderAck.getBytes)

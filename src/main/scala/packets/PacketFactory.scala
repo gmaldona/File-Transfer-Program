@@ -26,7 +26,10 @@ object PacketFactory {
 
     def _generateDataPacket(buffer: Array[Byte]): Data = {
         val blockNumber = new BigInteger(buffer.slice(2, 4)).intValue()
-        val dataBuffer = _findBuffer(buffer, 4)
+        var dataBuffer = buffer.slice(4, buffer.length - 1)
+        while (dataBuffer(dataBuffer.length - 1) == 0) {
+            dataBuffer = dataBuffer.slice(0, dataBuffer.length - 1)
+        }
 
         Data(blockNumber, dataBuffer)
     }

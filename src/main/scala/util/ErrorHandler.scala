@@ -30,7 +30,7 @@ object ErrorHandler {
             hasError = true
         }
 
-        else if (receivedFTPHeader.opcode == Opcode.WRQ && Files.exists(Paths.get(receivedFTPHeader.filepath))) {
+        else if (receivedFTPHeader.opcode == Opcode.WRQ && Files.exists(Paths.get("ReceivedFile/" + receivedFTPHeader.filepath))) {
             errorAck = Error(ErrorCode.FILE_EX, "File already exists.")
             hasError = true
         }

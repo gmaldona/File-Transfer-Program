@@ -31,7 +31,9 @@ case class Client(filepath: String) extends Service {
     implicit val ec = ExecutionContext.global
 
     def start(): Unit = {
+
         println("Starting Client. Sending File Data...")
+        println(fileBytes.mkString("Array(", ", ", ")"))
         var isDone = false
         var windowStartIndex = 0;
         var windowEndIndex = 0;

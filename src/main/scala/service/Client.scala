@@ -40,22 +40,24 @@ case class Client(filepath: String, address: SocketAddress) extends Service {
 
         while (! isDone) {
             if (ackMap.size() < Constants.WINDOW_SIZE && blockNumber <= fileBytesInFrames.length ) {
-                println("SIZE: " + fileBytesInFrames(blockNumber.-(1)).length)
+                println(s"${blockNumber} -> SIZE: " + fileBytesInFrames(blockNumber.-(1)).length)
                 executionService.submit(ClientMessager(blockNumber, fileBytesInFrames(blockNumber - 1)))
                 ackMap.put(blockNumber, ACK(-1))
                 windowEndIndex = blockNumber
                 blockNumber = blockNumber.+(1)
             }
             else {
-                if (blockNumber == fileBytesInFrames.length) {
-                    isDone = true
-                }
-                else if (ackMap.get(windowStartIndex + 1).blockNumber != -1 && blockNumber <= fileBytesInFrames.length) {
+                 if (ackMap.get(windowStartIndex + 1).blockNumber != -1 && blockNumber <= fileBytesInFrames.length) {
                     windowStartIndex = windowStartIndex.+(1)
+                    println(s"${blockNumber} -> SIZE: " + fileBytesInFrames(blockNumber-1).length)
                     executionService.submit(ClientMessager(blockNumber, fileBytesInFrames(blockNumber - 1)))
                     windowEndIndex = blockNumber
                     ackMap.put(blockNumber, ACK(-1))
                     blockNumber = blockNumber.+(1)
+                }
+                if (blockNumber > fileBytesInFrames.length) {
+                     println(blockNumber)
+                    isDone = true
                 }
             }
         }
@@ -92,10 +94,12 @@ case class Client(filepath: String, address: SocketAddress) extends Service {
             val dataPacket = Data(blockNumber, frame)
             var hasReceivedACK = false
             while (! hasReceivedACK) {
+                println("sending " + blockNumber)
                 sendPacket(dataPacket, address)
                 try {
                     val receivedPacket: Packet = runWithTimeout(2000) {parseBufferIntoPacket(receivePacket(datagramChannel)._1)}.get
                     val ack: ACK = getAckPacketOrError(receivedPacket)
+                    println("received " + ack.blockNumber)
                     if (ack.blockNumber > 0) {
                         if (! Constants.DEBUG_SHOW_DL_SLIDING_WINDOW_WORKS)  ackMap.put(ack.blockNumber, ack)
                     }

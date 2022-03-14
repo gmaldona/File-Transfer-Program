@@ -20,8 +20,6 @@ case class Server(filepath: String) extends Service {
     val executionService: ExecutorService = Executors.newFixedThreadPool(Constants.WINDOW_SIZE)
     val address: SocketAddress = new InetSocketAddress(Constants.HOST, Constants.PORT)
     var datagramChannel: DatagramChannel = null
-    var hasReceivedLastPacket = false
-    var hasReceivedAllPacket = false
     @volatile var openedThreads = 0
     @volatile var lastPacket: AtomicBoolean = new AtomicBoolean(false)
     @volatile var allPacket: AtomicBoolean = new AtomicBoolean(false)
@@ -46,11 +44,13 @@ case class Server(filepath: String) extends Service {
             } catch {
                 case _: Exception =>
             }
-            if (lastBlockNumber.get() != 0) { println("DEBUG:" + lastBlockNumber.get()) }
+            if (lastBlockNumber.get() != 0) {
+                println("DEBUG:" + lastBlockNumber.get())
+            }
             if (lastPacket.get() && dataPacketMap.size() == lastBlockNumber.get()) {
                 allPacket.set(true)
-                datagramChannel.disconnect()
-                datagramChannel.close()
+//                datagramChannel.disconnect()
+//                datagramChannel.close()
             }
         }
 
@@ -65,8 +65,8 @@ case class Server(filepath: String) extends Service {
         dataPacketMap.forEach( (key, value) => println(key + ": " + value.getBytes.mkString("Array(", ", ", ")")) )
         println("++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++")
         println(byteArray.mkString("Array(", ", ", ")"))
-        val outputStream : FileOutputStream = new FileOutputStream("ReceivedFile/" + filepath)
-        outputStream.write(byteArray)
+        //val outputStream : FileOutputStream = new FileOutputStream("ReceivedFile/" + filepath)
+        //outputStream.write(byteArray)
     }
 
     def runWithTimeout(timeoutMs: Long)(f: => Unit) : Option[Unit] = {
@@ -86,10 +86,9 @@ case class ReceivedDataPacket(_byteBuffer: ByteBuffer, _address: SocketAddress, 
     override def run(): Unit = {
 
         val dataPacket: Data = getDataPacketOrError( parseBufferIntoPacket(buffer) )
-
+        println("Length: " + dataPacket.getBytes.length)
         sendACKPacket(dataPacket.blockNumber, address)
         _dataPacketMap.put(dataPacket.blockNumber, dataPacket)
-        println(dataPacket.blockNumber + " BN : " + dataPacket.data.mkString("Array(", ", ", ")"))
         if (dataPacket.getBytes.length < Constants.MAX_PACKET_SIZE) {
             _lastPacket.set(true)
             _lastBlockNumber.set(dataPacket.blockNumber)

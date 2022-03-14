@@ -26,7 +26,7 @@ object LocalMachine {
     var host: String = ""
     var remoteKey: Int = 0
     var localRemoteKey: Long = 0
-    val address = new InetSocketAddress(host, Constants.PORT)
+    var address: InetSocketAddress = null
 
     val client: DatagramChannel = DatagramChannel.open().bind(null)
     val ec = ExecutionContext.global
@@ -48,7 +48,7 @@ object LocalMachine {
                 host = _args(_args.length - 2)
             }
         }
-
+        address = new InetSocketAddress(host, Constants.PORT)
         if (_args.length == 0) _args = Array("File-Transfer-Program", "4.4:4", "testData/test.txt")
         if (_args.length < 2) argumentError()
         if (_args.length == 2) service = Some(serviceFactory(_args.slice(1, 3)))
@@ -60,7 +60,7 @@ object LocalMachine {
             if (_args(_args.length - 1).contains(".edu")) sendFTPHeaderPacket(Opcode.RRQ, filePath, localKey)
             else sendFTPHeaderPacket(Opcode.WRQ, filePath, localKey)
             try {
-                runWithTimeout(1000) {
+                runWithTimeout(300) {
                     buffer = awaitFTPHeaderACKPacket()
                 }
                 receivedFTPAck = true
@@ -71,7 +71,7 @@ object LocalMachine {
 
 
 
-//        sendFTPHeaderPacket(Opcode.RRQ, filePath, localKey)
+        //        sendFTPHeaderPacket(Opcode.RRQ, filePath, localKey)
         // val buffer: Array[Byte] = awaitFTPHeaderACKPacket()
 
         val FTPHeaderACK = PacketFactory.get(buffer)

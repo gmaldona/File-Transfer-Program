@@ -28,6 +28,7 @@ object RemoteMachine {
         try {
 
             server = DatagramChannel.open().bind(new InetSocketAddress(Constants.HOST, Constants.PORT))
+            println(new InetSocketAddress(Constants.HOST, Constants.PORT))
             println("Listening for TFP Requests ...")
 
             var buffer: ByteBuffer = ByteBuffer.allocate(Constants.MAX_PACKET_SIZE)
@@ -59,11 +60,11 @@ object RemoteMachine {
                 case c: Client => c.start()
             }
         } finally  {
-                if (server != null) {
-//                    server.disconnect()
-//                    server.close()
-                }
+            if (server != null) {
+                //                    server.disconnect()
+                //                    server.close()
             }
+        }
     }
 
 

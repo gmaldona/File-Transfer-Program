@@ -46,7 +46,7 @@ case class Server(filepath: String) extends Service {
             } catch {
                 case _: Exception =>
             }
-            //if (lastBlockNumber.get() != 0) { println("DEBUG:" + lastBlockNumber.get()) }
+            if (lastBlockNumber.get() != 0) { println("DEBUG:" + lastBlockNumber.get()) }
             if (lastPacket.get() && dataPacketMap.size() == lastBlockNumber.get()) {
                 allPacket.set(true)
                 datagramChannel.disconnect()
@@ -62,7 +62,7 @@ case class Server(filepath: String) extends Service {
             byteArray = byteArray :++ dataPacketMap.get(i).data
         }
 
-//        dataPacketMap.forEach( (key, value) => println(key + ": " + value.getBytes.mkString("Array(", ", ", ")")) )
+        dataPacketMap.forEach( (key, value) => println(key + ": " + value.getBytes.mkString("Array(", ", ", ")")) )
         println("++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++")
         println(byteArray.mkString("Array(", ", ", ")"))
         val outputStream : FileOutputStream = new FileOutputStream("ReceivedFile/" + filepath)
@@ -89,6 +89,7 @@ case class ReceivedDataPacket(_byteBuffer: ByteBuffer, _address: SocketAddress, 
 
         sendACKPacket(dataPacket.blockNumber, address)
         _dataPacketMap.put(dataPacket.blockNumber, dataPacket)
+        println(dataPacket.blockNumber + " BN : " + dataPacket.data.mkString("Array(", ", ", ")"))
         if (dataPacket.getBytes.length < Constants.MAX_PACKET_SIZE) {
             _lastPacket.set(true)
             _lastBlockNumber.set(dataPacket.blockNumber)
@@ -98,6 +99,7 @@ case class ReceivedDataPacket(_byteBuffer: ByteBuffer, _address: SocketAddress, 
     def sendACKPacket(blockNumber: Int, address: SocketAddress): Unit = {
         val ack = ACK(blockNumber)
         val byteBuffer: ByteBuffer = ByteBuffer.wrap(ack.getBytes)
+        println(ack)
         datagramChannel.send(byteBuffer, address)
     }
 

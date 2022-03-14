@@ -33,27 +33,26 @@ case class Client(filepath: String) extends Service {
     def start(): Unit = {
 
         println("Starting Client. Sending File Data...")
-        println(fileBytes.mkString("Array(", ", ", ")"))
         var isDone = false
         var windowStartIndex = 0;
         var windowEndIndex = 0;
         var blockNumber = 1;
 
         while (! isDone) {
-            if (ackMap.size() < Constants.WINDOW_SIZE ) {
-                executionService.submit(ClientMessager(blockNumber, fileBytesInFrames(blockNumber)))
+            if (ackMap.size() < Constants.WINDOW_SIZE && blockNumber <= fileBytesInFrames.length ) {
+                println("SIZE: " + fileBytesInFrames(blockNumber.-(1)).length)
+                executionService.submit(ClientMessager(blockNumber, fileBytesInFrames(blockNumber - 1)))
                 ackMap.put(blockNumber, ACK(-1))
                 windowEndIndex = blockNumber
                 blockNumber = blockNumber.+(1)
             }
             else {
                 if (blockNumber == fileBytesInFrames.length) {
-                    println(blockNumber + ":" + fileBytesInFrames.length)
                     isDone = true
                 }
-                else if (ackMap.get(windowStartIndex + 1).blockNumber != -1 && blockNumber < fileBytesInFrames.length) {
+                else if (ackMap.get(windowStartIndex + 1).blockNumber != -1 && blockNumber <= fileBytesInFrames.length) {
                     windowStartIndex = windowStartIndex.+(1)
-                    executionService.submit(ClientMessager(blockNumber, fileBytesInFrames(blockNumber)))
+                    executionService.submit(ClientMessager(blockNumber, fileBytesInFrames(blockNumber - 1)))
                     windowEndIndex = blockNumber
                     ackMap.put(blockNumber, ACK(-1))
                     blockNumber = blockNumber.+(1)
@@ -99,7 +98,6 @@ case class Client(filepath: String) extends Service {
                 try {
                     val receivedPacket: Packet = runWithTimeout(2000) {parseBufferIntoPacket(receivePacket(datagramChannel)._1)}.get
                     val ack: ACK = getAckPacketOrError(receivedPacket)
-                    println(blockNumber + " : " + ack)
                     if (ack.blockNumber > 0) {
                         if (! Constants.DEBUG_SHOW_DL_SLIDING_WINDOW_WORKS)  ackMap.put(ack.blockNumber, ack)
                     }

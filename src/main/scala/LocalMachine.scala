@@ -2,9 +2,9 @@ package edu.oswego.cs.gmaldona
 
 import service.{ Client, Server, Service }
 
-import edu.oswego.cs.gmaldona.opcodes.Opcode
-import edu.oswego.cs.gmaldona.packets.{ Data, Error, FTPHeader, PacketFactory }
-import edu.oswego.cs.gmaldona.util.{ Constants, FTPUtil }
+import opcodes.Opcode
+import packets.{ Data, Error, FTPHeader, PacketFactory }
+import util.{ Constants, FTPUtil }
 
 import java.net.InetSocketAddress
 import java.nio.ByteBuffer

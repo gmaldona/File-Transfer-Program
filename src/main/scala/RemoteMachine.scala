@@ -1,17 +1,14 @@
 package edu.oswego.cs.gmaldona
 
-import edu.oswego.cs.gmaldona.opcodes.Opcode.{ ACK, ERR }
-import edu.oswego.cs.gmaldona.opcodes.{ ErrorCode, Opcode }
-import edu.oswego.cs.gmaldona.packets.{ Data, Error, FTPHeader, Packet, PacketFactory }
-import edu.oswego.cs.gmaldona.service.{ Client, Server, Service }
-import edu.oswego.cs.gmaldona.util.{ Constants, ErrorHandler, FTPUtil }
+import opcodes.Opcode
+import packets.{ Data, FTPHeader, Packet, PacketFactory }
+import service.{ Client, Server, Service }
+import util.{ Constants, ErrorHandler, FTPUtil }
 
 import java.net.{ InetSocketAddress, SocketAddress }
 import java.nio.ByteBuffer
-import java.nio.file.{ Files, Paths }
 import java.nio.channels.DatagramChannel
 import scala.util.Random
-import scala.util.control.Breaks._
 import sys.process._
 import scala.language.postfixOps
 

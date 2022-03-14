@@ -2,10 +2,9 @@ package edu.oswego.cs.gmaldona
 package service
 import packets.{ ACK, Data, Error, Packet, PacketFactory }
 
-import edu.oswego.cs.gmaldona.opcodes.Opcode
-import edu.oswego.cs.gmaldona.util.{ Constants, ErrorHandler, FTPUtil }
+import util.{ Constants, ErrorHandler, FTPUtil }
 
-import java.io.{ FileOutputStream, FileWriter }
+import java.io.FileOutputStream
 import java.net.{ InetSocketAddress, SocketAddress }
 import java.nio.ByteBuffer
 import java.nio.channels.DatagramChannel

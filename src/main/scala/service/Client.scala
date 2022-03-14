@@ -2,16 +2,14 @@ package edu.oswego.cs.gmaldona
 package service
 import packets.{ ACK, Data, Error, Packet, PacketFactory }
 
-import edu.oswego.cs.gmaldona.opcodes.Opcode
-import edu.oswego.cs.gmaldona.util.{ Constants, ErrorHandler, FTPUtil }
-import edu.oswego.cs.gmaldona.util.Constants.Frame
+import util.{ Constants, ErrorHandler, FTPUtil }
+import util.Constants.Frame
 
 import java.io.File
-import java.net.{ InetSocketAddress, SocketAddress }
+import java.net.{ SocketAddress }
 import java.nio.ByteBuffer
 import java.nio.channels.DatagramChannel
 import java.util.concurrent.{ ConcurrentHashMap, ExecutorService, Executors }
-import java.util.stream.Collectors
 import scala.concurrent.duration.DurationLong
 import scala.concurrent.{ Await, ExecutionContext, Future }
 import scala.language.postfixOps
@@ -95,8 +93,9 @@ case class Client(filepath: String, address: SocketAddress, localRemoteKey: Arra
             while (! hasReceivedACK) {
                 sendPacket(dataPacket, address)
                 try {
-                    val receivedPacket: Packet = runWithTimeout(2000) {parseBufferIntoPacket(receivePacket(datagramChannel)._1)}.get
+                    val receivedPacket: Packet = runWithTimeout(300) {parseBufferIntoPacket(receivePacket(datagramChannel)._1)}.get
                     val ack: ACK = getAckPacketOrError(receivedPacket)
+                    println(ack)
                     if (ack.blockNumber > 0) {
                         if (! Constants.DEBUG_SHOW_DL_SLIDING_WINDOW_WORKS)  ackMap.put(ack.blockNumber, ack)
                     }

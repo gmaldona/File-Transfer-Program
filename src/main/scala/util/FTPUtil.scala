@@ -1,9 +1,8 @@
 package edu.oswego.cs.gmaldona
 package util
 
-import java.io.{ File, FileInputStream, IOException }
+import java.io.{ File, FileInputStream }
 import java.nio.ByteBuffer
-import scala.util.Random
 import packets.Error
 
 object FTPUtil {

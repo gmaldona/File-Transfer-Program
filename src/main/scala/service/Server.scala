@@ -65,8 +65,8 @@ case class Server(filepath: String) extends Service {
         dataPacketMap.forEach( (key, value) => println(key + ": " + value.getBytes.mkString("Array(", ", ", ")")) )
         println("++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++")
         println(byteArray.mkString("Array(", ", ", ")"))
-        //val outputStream : FileOutputStream = new FileOutputStream("ReceivedFile/" + filepath)
-        //outputStream.write(byteArray)
+        val outputStream : FileOutputStream = new FileOutputStream("ReceivedFile/" + filepath)
+        outputStream.write(byteArray)
     }
 
     def runWithTimeout(timeoutMs: Long)(f: => Unit) : Option[Unit] = {

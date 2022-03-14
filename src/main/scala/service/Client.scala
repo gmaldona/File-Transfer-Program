@@ -94,12 +94,10 @@ case class Client(filepath: String, address: SocketAddress) extends Service {
             val dataPacket = Data(blockNumber, frame)
             var hasReceivedACK = false
             while (! hasReceivedACK) {
-                println("sending " + blockNumber)
                 sendPacket(dataPacket, address)
                 try {
                     val receivedPacket: Packet = runWithTimeout(2000) {parseBufferIntoPacket(receivePacket(datagramChannel)._1)}.get
                     val ack: ACK = getAckPacketOrError(receivedPacket)
-                    println("received " + ack.blockNumber)
                     if (ack.blockNumber > 0) {
                         if (! Constants.DEBUG_SHOW_DL_SLIDING_WINDOW_WORKS)  ackMap.put(ack.blockNumber, ack)
                     }

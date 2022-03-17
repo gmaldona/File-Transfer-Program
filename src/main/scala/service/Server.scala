@@ -1,6 +1,6 @@
 package edu.oswego.cs.gmaldona
 package service
-import packets.{ ACK, Data, Error, Packet, PacketFactory }
+import packets.{ ACK, Data, END, Error, Packet, PacketFactory }
 import util.{ Constants, ErrorHandler, FTPUtil }
 
 import java.io.FileOutputStream
@@ -42,9 +42,6 @@ case class Server(filepath: String, localRemoteKey: Array[Byte], drop: Boolean) 
             } catch {
                 case _: Exception =>
             }
-            if (lastBlockNumber.get() != 0) {
-                println("DEBUG:" + lastBlockNumber.get())
-            }
             if (lastPacket.get() && dataPacketMap.size() == lastBlockNumber.get()) {
                 allPacket.set(true)
             }
@@ -58,6 +55,7 @@ case class Server(filepath: String, localRemoteKey: Array[Byte], drop: Boolean) 
 
         val outputStream : FileOutputStream = new FileOutputStream("ReceivedFile/" + filepath)
         outputStream.write(byteArray)
+
     }
 
     def runWithTimeout(timeoutMs: Long)(f: => Unit) : Option[Unit] = {
@@ -81,15 +79,18 @@ case class ReceivedDataPacket(_byteBuffer: ByteBuffer, _address: SocketAddress, 
             if (randomDrop == 0) return
         }
         var dataPacket: Data = getDataPacketOrError(parseBufferIntoPacket(buffer))
+        if (dataPacket.blockNumber == -1) {
+            println("RECEIVED END PACKET")
+            _lastPacket.set(true)
+            _lastBlockNumber.set(BigInt(dataPacket.data).intValue - 1)
+            return
+        }
         if (! Constants.DEBUG_SHOW_DL_XOR_WORKS) dataPacket = Data(dataPacket.blockNumber, FTPUtil.XORData(dataPacket.data, localRemoteKey))
 
         println("Length: " + dataPacket.getBytes.length)
         sendACKPacket(dataPacket.blockNumber, address)
         _dataPacketMap.put(dataPacket.blockNumber, dataPacket)
-        if (dataPacket.getBytes.length < Constants.MAX_PACKET_SIZE) {
-            _lastPacket.set(true)
-            _lastBlockNumber.set(dataPacket.blockNumber)
-        }
+
     }
 
     def sendACKPacket(blockNumber: Int, address: SocketAddress): Unit = {
@@ -104,7 +105,7 @@ case class ReceivedDataPacket(_byteBuffer: ByteBuffer, _address: SocketAddress, 
             packet match {
                 case data: Data   => return data
                 case error: Error => ErrorHandler.handle(error); return null
-                case _: Packet    => return Data(-1, Array())
+                case end: END    => return Data(-1, BigInt(end.blockNumber).toByteArray)
             }
         } catch {
             case _: Exception => datagramChannel.close(); System.exit(1)

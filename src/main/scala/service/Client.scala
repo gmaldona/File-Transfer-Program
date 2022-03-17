@@ -1,6 +1,6 @@
 package edu.oswego.cs.gmaldona
 package service
-import packets.{ ACK, Data, Error, Packet, PacketFactory }
+import packets.{ ACK, Data, Error, END, Packet, PacketFactory }
 
 import util.{ Constants, ErrorHandler, FTPUtil }
 import util.Constants.Frame
@@ -36,8 +36,8 @@ case class Client(filepath: String, address: SocketAddress, localRemoteKey: Arra
         var blockNumber = 1;
 
         while (! isDone) {
+            println(s"${blockNumber} -> SIZE: " + fileBytesInFrames(blockNumber.-(1)).length)
             if (ackMap.size() < Constants.WINDOW_SIZE && blockNumber <= fileBytesInFrames.length ) {
-                println(s"${blockNumber} -> SIZE: " + fileBytesInFrames(blockNumber.-(1)).length)
                 executionService.submit(ClientMessager(blockNumber, fileBytesInFrames(blockNumber - 1)))
                 ackMap.put(blockNumber, ACK(-1))
                 windowEndIndex = blockNumber
@@ -46,21 +46,24 @@ case class Client(filepath: String, address: SocketAddress, localRemoteKey: Arra
             else {
                  if (ackMap.get(windowStartIndex + 1).blockNumber != -1 && blockNumber <= fileBytesInFrames.length) {
                     windowStartIndex = windowStartIndex.+(1)
-                    println(s"${blockNumber} -> SIZE: " + fileBytesInFrames(blockNumber-1).length)
                      executionService.submit(ClientMessager(blockNumber, fileBytesInFrames(blockNumber - 1)))
                     windowEndIndex = blockNumber
                     ackMap.put(blockNumber, ACK(-1))
                     blockNumber = blockNumber.+(1)
                 }
                 if (blockNumber > fileBytesInFrames.length) {
-                     println(blockNumber)
+                    println("SENDING END PACKET")
+                    executionService.submit(ClientMessager(blockNumber, Array()))
+                    ackMap.put(blockNumber, ACK(-1))
+
                     isDone = true
                 }
             }
+
         }
 
         while (ackMap.values().stream().filter( ack => ack.blockNumber == -1).count() > 0) {
-            if (ackMap.containsKey(-1)) System.exit(0)
+            //if (ackMap.containsKey(-1)) System.exit(0)
         }
         System.exit(0)
 
@@ -88,7 +91,11 @@ case class Client(filepath: String, address: SocketAddress, localRemoteKey: Arra
     case class ClientMessager(blockNumber: Int, frame: Frame) extends Runnable {
 
         override def run(): Unit = {
-            val dataPacket = Data(blockNumber, FTPUtil.XORData(frame, localRemoteKey))
+            var dataPacket: Packet = null
+            if (blockNumber <= fileBytesInFrames.length)
+                dataPacket = Data(blockNumber, FTPUtil.XORData(frame, localRemoteKey))
+            else if (blockNumber > fileBytesInFrames.length)
+                dataPacket = END(blockNumber)
             var hasReceivedACK = false
             while (! hasReceivedACK) {
                 sendPacket(dataPacket, address)

@@ -10,6 +10,7 @@ object Opcode extends Enumeration {
     val ACK  = Value(4)
     val ERR  = Value(5)
     val OACK = Value(6)
+    val END  = Value(7)
 
     def getOpcode(value: Int): Opcode = value match {
         case 1 => WRQ
@@ -18,5 +19,6 @@ object Opcode extends Enumeration {
         case 4 => ACK
         case 5 => ERR
         case 6 => OACK
+        case 7 => END
     }
 }

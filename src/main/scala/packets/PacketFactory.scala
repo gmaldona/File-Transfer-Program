@@ -19,8 +19,10 @@ object PacketFactory {
             case Opcode.DATA => _generateDataPacket(buffer)
             case Opcode.ACK => _generateACKPacket(buffer)
             case Opcode.ERR  => _generateErrorPacket(buffer)
+            case Opcode.END => _generateEndPacket(buffer)
             //case Opcode.OACK.id => _
             case _ => println(opcode); _generateDataPacket(buffer)
+
         }
     }
 
@@ -32,6 +34,12 @@ object PacketFactory {
         }
 
         Data(blockNumber, dataBuffer)
+    }
+
+    def _generateEndPacket(buffer: Array[Byte]): END = {
+        val blockNumber = new BigInteger(buffer.slice(2,4)).intValue()
+
+        END(blockNumber)
     }
 
     def _generateACKPacket(buffer: Array[Byte]): ACK = {

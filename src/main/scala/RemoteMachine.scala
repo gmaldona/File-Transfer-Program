@@ -39,6 +39,7 @@ object RemoteMachine {
 
             if (ErrorHandler.checkRequestErrors(receivedFTPHeader, remoteAddress)) hasError = true
             localKey = BigInt(receivedFTPHeader.encryptionKey).intValue
+            println(localKey)
             if (localKey < 0) {
                 localKey = localKey.*(-1)
                 println("Dropping 1% of Packets.")
@@ -46,7 +47,12 @@ object RemoteMachine {
             }
             localRemoteKey = FTPUtil.localRemoteXORKey(localKey, remoteKey)
 
-            val service: Service = if (receivedFTPHeader.opcode == Opcode.WRQ) Server(receivedFTPHeader.filepath, BigInt(localRemoteKey).toByteArray, drop) else Client(receivedFTPHeader.filepath, remoteAddress, BigInt(localRemoteKey).toByteArray)
+            val service: Service = if (receivedFTPHeader.opcode == Opcode.WRQ)
+                Server(receivedFTPHeader.filepath, BigInt(localRemoteKey).toByteArray, drop)
+            else {
+                val hostname:String = remoteAddress.toString.split(":")(0)
+                Client(receivedFTPHeader.filepath, new InetSocketAddress(hostname.substring(1, hostname.length), Constants.PORT), BigInt(localRemoteKey).toByteArray)
+            }
 
             val FTPHeaderAck = Data(0, BigInt(remoteKey).toByteArray)
             buffer = ByteBuffer.wrap(FTPHeaderAck.getBytes)

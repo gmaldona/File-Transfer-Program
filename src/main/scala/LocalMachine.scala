@@ -1,10 +1,11 @@
 package edu.oswego.cs.gmaldona
 
 import service.{ Client, Server, Service }
-
 import opcodes.Opcode
 import packets.{ Data, Error, FTPHeader, PacketFactory }
 import util.{ Constants, FTPUtil }
+
+import edu.oswego.cs.gmaldona.LocalMachine.filePath
 
 import java.net.InetSocketAddress
 import java.nio.ByteBuffer
@@ -56,13 +57,13 @@ object LocalMachine {
         address = new InetSocketAddress(host, Constants.PORT)
         if (_args.length < 2) argumentError()
         if (_args.length > 2) service = Some(serviceFactory(_args.slice(1, 3)))
-
-        localKey = localKey.*(-1)
+        println(localKey)
+        if (drop) localKey = localKey.*(-1)
         var receivedFTPAck = false
         var buffer: Array[Byte] = Array()
         while (! receivedFTPAck) {
-            if (_args(_args.length - 1).contains(".edu") || _args(_args.length -1).equals("localhost")) sendFTPHeaderPacket(Opcode.RRQ, filePath, localKey)
-            else sendFTPHeaderPacket(Opcode.WRQ, filePath, localKey)
+            if (_args(_args.length - 1).contains(".edu") || _args(_args.length -1).equals("localhost")) sendFTPHeaderPacket(Opcode.WRQ, filePath, localKey)
+            else sendFTPHeaderPacket(Opcode.RRQ, filePath, localKey)
             try {
                 runWithTimeout(300) {
                     buffer = awaitFTPHeaderACKPacket()
@@ -72,7 +73,7 @@ object LocalMachine {
                 case e: Exception =>
             }
         }
-        localKey=localKey.*(-1)
+        if (drop) localKey=localKey.*(-1)
 
         val FTPHeaderACK = PacketFactory.get(buffer)
         println(FTPHeaderACK)
@@ -121,7 +122,11 @@ object LocalMachine {
      *  @param args Arguments to for the service
      *  @return Service
      */
-    def serviceFactory(args: Array[String]): Service = if (args(1).contains(".edu") || args(1).equals("localhost")) Server(filePath, BigInt(localRemoteKey).toByteArray, drop) else Client(filePath, address, BigInt(localRemoteKey).toByteArray)
+    def serviceFactory(args: Array[String]): Service =
+        if (args(1).contains(".edu") || args(1).equals("localhost")) {
+            Client(filePath, address, BigInt(localRemoteKey).toByteArray)
+        }
+        else Server(filePath, BigInt(localRemoteKey).toByteArray, drop)
     def parseOptions(): Unit = {}
     def parseFTPHeaderACK(packet: Data): Unit = remoteKey = BigInt(packet.data).intValue
 }

@@ -1,7 +1,6 @@
 package edu.oswego.cs.gmaldona
 package service
 import packets.{ ACK, Data, Error, Packet, PacketFactory }
-
 import util.{ Constants, ErrorHandler, FTPUtil }
 
 import java.io.FileOutputStream
@@ -9,11 +8,10 @@ import java.net.{ InetSocketAddress, SocketAddress }
 import java.nio.ByteBuffer
 import java.nio.channels.DatagramChannel
 import java.util.concurrent.atomic.{ AtomicBoolean, AtomicInteger }
-import java.util.concurrent.{ ConcurrentHashMap, ExecutorService, Executors }
+import java.util.concurrent.{ ConcurrentHashMap, ExecutorService, Executors, ThreadLocalRandom }
 import scala.concurrent.duration.DurationLong
 import scala.concurrent.{ Await, ExecutionContext, Future }
 import scala.language.postfixOps
-import scala.util.Random
 
 case class Server(filepath: String, localRemoteKey: Array[Byte], drop: Boolean) extends Service {
 
@@ -78,7 +76,7 @@ case class ReceivedDataPacket(_byteBuffer: ByteBuffer, _address: SocketAddress, 
 
     override def run(): Unit = {
         if (drop) {
-            val randomDrop = Random.nextInt(100)
+            val randomDrop = ThreadLocalRandom.current().nextInt(100)
             println("Dropping Packet!")
             if (randomDrop == 0) return
         }

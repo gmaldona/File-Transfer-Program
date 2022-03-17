@@ -4,7 +4,7 @@ import packets.{ ACK, Data, END, Error, Packet, PacketFactory }
 import util.{ Constants, ErrorHandler, FTPUtil }
 
 import java.io.FileOutputStream
-import java.net.{ InetSocketAddress, SocketAddress }
+import java.net.{ InetSocketAddress, SocketAddress, InetAddress }
 import java.nio.ByteBuffer
 import java.nio.channels.DatagramChannel
 import java.util.concurrent.atomic.{ AtomicBoolean, AtomicInteger }
@@ -16,7 +16,7 @@ import scala.language.postfixOps
 case class Server(filepath: String, localRemoteKey: Array[Byte], drop: Boolean) extends Service {
 
     val executionService: ExecutorService = Executors.newFixedThreadPool(Constants.WINDOW_SIZE)
-    val address: SocketAddress = new InetSocketAddress(Constants.HOST, Constants.PORT)
+    var address: SocketAddress = null
     var datagramChannel: DatagramChannel = null
     @volatile var openedThreads = 0
     @volatile var lastPacket: AtomicBoolean = new AtomicBoolean(false)
@@ -27,8 +27,17 @@ case class Server(filepath: String, localRemoteKey: Array[Byte], drop: Boolean) 
 
     def start(): Unit = {
 
-        println("Starting Server. Listening for File Data...")
-        datagramChannel = DatagramChannel.open().bind(address)
+        val hostname: String = InetAddress.getLocalHost.getHostName
+        address = new InetSocketAddress(hostname + ".cs.oswego.edu", Constants.PORT)
+        try {
+            datagramChannel = DatagramChannel.open().bind(address)
+        } catch {
+            case _: Exception => {
+                address = new InetSocketAddress("localhost", Constants.PORT)
+                datagramChannel = DatagramChannel.open().bind(address)
+            }
+        }
+
         val dataPacketMap: ConcurrentHashMap[Int, Data] = new ConcurrentHashMap[Int, Data]()
 
         while (! lastPacket.get() && !allPacket.get()) {

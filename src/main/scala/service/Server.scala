@@ -13,8 +13,9 @@ import java.util.concurrent.{ ConcurrentHashMap, ExecutorService, Executors }
 import scala.concurrent.duration.DurationLong
 import scala.concurrent.{ Await, ExecutionContext, Future }
 import scala.language.postfixOps
+import scala.util.Random
 
-case class Server(filepath: String, localRemoteKey: Array[Byte]) extends Service {
+case class Server(filepath: String, localRemoteKey: Array[Byte], drop: Boolean) extends Service {
 
     val executionService: ExecutorService = Executors.newFixedThreadPool(Constants.WINDOW_SIZE)
     val address: SocketAddress = new InetSocketAddress(Constants.HOST, Constants.PORT)
@@ -37,7 +38,7 @@ case class Server(filepath: String, localRemoteKey: Array[Byte]) extends Service
                 runWithTimeout(1000) {
                     val byteBuffer = ByteBuffer.allocate(Constants.MAX_PACKET_SIZE)
                     val address: SocketAddress = datagramChannel.receive(byteBuffer)
-                    val dataPacketHandler = ReceivedDataPacket(byteBuffer, address, dataPacketMap, lastPacket, lastBlockNumber, localRemoteKey)
+                    val dataPacketHandler = ReceivedDataPacket(byteBuffer, address, dataPacketMap, lastPacket, lastBlockNumber, localRemoteKey, drop)
                     new Thread(dataPacketHandler).start()
                 }
             } catch {
@@ -69,14 +70,18 @@ case class Server(filepath: String, localRemoteKey: Array[Byte]) extends Service
 
 }
 
-case class ReceivedDataPacket(_byteBuffer: ByteBuffer, _address: SocketAddress, _dataPacketMap: ConcurrentHashMap[Int, Data], _lastPacket: AtomicBoolean, _lastBlockNumber: AtomicInteger, localRemoteKey: Array[Byte]) extends Runnable {
+case class ReceivedDataPacket(_byteBuffer: ByteBuffer, _address: SocketAddress, _dataPacketMap: ConcurrentHashMap[Int, Data], _lastPacket: AtomicBoolean, _lastBlockNumber: AtomicInteger, localRemoteKey: Array[Byte], drop: Boolean) extends Runnable {
     val byteBuffer = _byteBuffer.flip()
     val address = _address
     val datagramChannel: DatagramChannel = DatagramChannel.open().bind(null)
     val buffer: Array[Byte] = byteBuffer.array().asInstanceOf[Array[Byte]]
 
     override def run(): Unit = {
-
+        if (drop) {
+            val randomDrop = Random.nextInt(100)
+            println("Dropping Packet!")
+            if (randomDrop == 0) return
+        }
         var dataPacket: Data = getDataPacketOrError(parseBufferIntoPacket(buffer))
         if (! Constants.DEBUG_SHOW_DL_XOR_WORKS) dataPacket = Data(dataPacket.blockNumber, FTPUtil.XORData(dataPacket.data, localRemoteKey))
 

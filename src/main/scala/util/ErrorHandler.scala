@@ -62,7 +62,4 @@ object ErrorHandler {
         println("Closing Connection.")
         throw new Exception(errorPacket.errorMessage)
     }
-
-
-
 }

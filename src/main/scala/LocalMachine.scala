@@ -24,6 +24,7 @@ object LocalMachine {
     var localKey: Int = math.abs(Random.nextInt())
     var filePath: String = ""
     var host: String = ""
+    var drop: Boolean = false
     var remoteKey: Int = 0
     var localRemoteKey: Long = 0
     var address: InetSocketAddress = null
@@ -40,7 +41,11 @@ object LocalMachine {
 
         var _args: Array[String] = args
         if (_args.length >= 2) {
-            if (_args(_args.length - 1).contains(".edu")) {
+            if (_args(0).equals("TRUE")) {
+                drop = java.lang.Boolean.parseBoolean(_args(0))
+                println("Dropping 1% of Packets.")
+            }
+            if (_args(_args.length - 1).contains(".edu") || _args(_args.length - 1).equals("localhost")) {
                 filePath = _args(_args.length - 2)
                 host = _args(_args.length - 1)
             } else {
@@ -49,15 +54,14 @@ object LocalMachine {
             }
         }
         address = new InetSocketAddress(host, Constants.PORT)
-        if (_args.length == 0) _args = Array("File-Transfer-Program", "4.4:4", "testData/test.txt")
         if (_args.length < 2) argumentError()
-        if (_args.length == 2) service = Some(serviceFactory(_args.slice(1, 3)))
-        if (_args.length > 2) parseOptions()
+        if (_args.length > 2) service = Some(serviceFactory(_args.slice(1, 3)))
 
+        localKey = localKey.*(-1)
         var receivedFTPAck = false
         var buffer: Array[Byte] = Array()
         while (! receivedFTPAck) {
-            if (_args(_args.length - 1).contains(".edu")) sendFTPHeaderPacket(Opcode.RRQ, filePath, localKey)
+            if (_args(_args.length - 1).contains(".edu") || _args(_args.length -1).equals("localhost")) sendFTPHeaderPacket(Opcode.RRQ, filePath, localKey)
             else sendFTPHeaderPacket(Opcode.WRQ, filePath, localKey)
             try {
                 runWithTimeout(300) {
@@ -68,11 +72,7 @@ object LocalMachine {
                 case e: Exception =>
             }
         }
-
-
-
-        //        sendFTPHeaderPacket(Opcode.RRQ, filePath, localKey)
-        // val buffer: Array[Byte] = awaitFTPHeaderACKPacket()
+        localKey=localKey.*(-1)
 
         val FTPHeaderACK = PacketFactory.get(buffer)
         println(FTPHeaderACK)
@@ -81,14 +81,13 @@ object LocalMachine {
             case Opcode.DATA => parseFTPHeaderACK(FTPHeaderACK.asInstanceOf[Data])
             case Opcode.ERR  => FTPUtil.displayError(FTPHeaderACK.asInstanceOf[Error])
         }
-
         localRemoteKey = FTPUtil.localRemoteXORKey(localKey, remoteKey)
         println("Client Key: " + BigInt(localRemoteKey))
         client.close()
         service match {
             case Some(s) => s match {
                 case _: Client => Client(filePath, address, BigInt(localRemoteKey).toByteArray).start();
-                case _: Server => Server(filePath, BigInt(localRemoteKey).toByteArray).start()
+                case _: Server => Server(filePath, BigInt(localRemoteKey).toByteArray, drop).start()
             }
             case None => println("Service Error. Try Again.")
         }
@@ -122,7 +121,7 @@ object LocalMachine {
      *  @param args Arguments to for the service
      *  @return Service
      */
-    def serviceFactory(args: Array[String]): Service = if (args(0).contains(":")) Server(filePath, BigInt(localRemoteKey).toByteArray) else Client(filePath, address, BigInt(localRemoteKey).toByteArray)
+    def serviceFactory(args: Array[String]): Service = if (args(1).contains(".edu") || args(1).equals("localhost")) Server(filePath, BigInt(localRemoteKey).toByteArray, drop) else Client(filePath, address, BigInt(localRemoteKey).toByteArray)
     def parseOptions(): Unit = {}
     def parseFTPHeaderACK(packet: Data): Unit = remoteKey = BigInt(packet.data).intValue
 }

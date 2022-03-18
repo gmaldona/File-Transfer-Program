@@ -92,6 +92,9 @@ case class ReceivedDataPacket(_byteBuffer: ByteBuffer, _address: SocketAddress, 
             println("RECEIVED END PACKET")
             _lastPacket.set(true)
             _lastBlockNumber.set(BigInt(dataPacket.data).intValue - 1)
+            for (_ <- 0 to 500) {
+                sendACKPacket(BigInt(dataPacket.data).intValue, address)
+            }
             return
         }
         if (! Constants.DEBUG_SHOW_DL_XOR_WORKS) dataPacket = Data(dataPacket.blockNumber, FTPUtil.XORData(dataPacket.data, localRemoteKey))

@@ -35,6 +35,8 @@ case class Client(filepath: String, address: SocketAddress, localRemoteKey: Arra
         var windowEndIndex = 0;
         var blockNumber = 1;
 
+        val startTime: Long = System.nanoTime()
+
         while (! isDone) {
             println(s"${blockNumber} -> SIZE: " + fileBytesInFrames(blockNumber.-(1)).length)
             if (ackMap.size() < Constants.WINDOW_SIZE && blockNumber <= fileBytesInFrames.length ) {
@@ -65,6 +67,13 @@ case class Client(filepath: String, address: SocketAddress, localRemoteKey: Arra
         while (ackMap.values().stream().filter( ack => ack.blockNumber == -1).count() > 0) {
             //if (ackMap.containsKey(-1)) System.exit(0)
         }
+
+        val endTime: Double = ( System.nanoTime() - startTime ) / 1e9
+        //593498 ws = 1
+        //311376 ws = 5
+        val fileBits: Long = fileBytes.length * 8
+        println("===========================================")
+        println("\nThroughput: " + fileBits / endTime)
         System.exit(0)
 
     }
